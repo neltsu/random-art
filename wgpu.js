@@ -1,4 +1,4 @@
-async function init_wgpu(fragment, canvas) {
+async function render_wgpu(fragment, canvas) {
     const adapter = await navigator.gpu?.requestAdapter();
     const device = await adapter?.requestDevice();
     if (!device) {
@@ -87,12 +87,6 @@ async function init_wgpu(fragment, canvas) {
             targets: [{ format: presentationFormat }],
         },
     });
-
-    return { bindGroup, context, device, pipeline, ctxBuffer };
-}
-
-async function render_wgpu(fragment, canvas) {
-    const { bindGroup, context, device, pipeline, ctxBuffer } = await init_wgpu(fragment, canvas);
 
     let t1 = new Date().getTime();
     let mx = 0, my = 0;

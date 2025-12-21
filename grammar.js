@@ -45,9 +45,9 @@ const node_cond = (cond, then, elze) => ({ kind: NodeKind.IF, cond, then, elze }
 
 function gen_fragment_expr(node) {
     switch (node.kind) {
-        case NodeKind.X:    return 'x';
-        case NodeKind.Y:    return 'y';
-        case NodeKind.T:    return 't';
+        case NodeKind.X: return 'x';
+        case NodeKind.Y: return 'y';
+        case NodeKind.T: return 't';
         case NodeKind.MOUSEX: return 'mouse_x';
         case NodeKind.MOUSEY: return 'mouse_y';
         case NodeKind.NUMBER: return '' + node.number;

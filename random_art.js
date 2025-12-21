@@ -20,15 +20,12 @@ const cool = node_cond(
 );
 
 const RULE_A = node_rule('A');
-const RULE_B = node_rule('B');
 const RULE_C = node_rule('C');
 const GRAMMAR = {
     E: uniform_branches(node_triple(RULE_C, RULE_C, RULE_C)),
     A: uniform_branches(NODE_X, NODE_Y, NODE_T, NODE_MOUSEX, NODE_MOUSEY, NODE_RANDOM),
-    B: uniform_branches(node_cond(node_ge(RULE_C, NODE_RANDOM), RULE_C, RULE_C)),
     C: uniform_branches(
         RULE_A,
-        RULE_B,
         node_abs(RULE_C),
         node_add(RULE_C, RULE_C),
         node_mult(RULE_C, RULE_C),
