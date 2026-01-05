@@ -49,13 +49,13 @@ async function render_wgpu(fragment, canvas) {
         `,
     });
 
-    const buffer = new Float32Array([0,0,0]);
+    const ctxArray = new Float32Array([0,0,0]);
     const ctxBuffer = device.createBuffer({
         label: 'ctx buffer',
-        size: buffer.byteLength,
+        size: ctxArray.byteLength,
         usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC,
     });
-    device.queue.writeBuffer(ctxBuffer, 0, buffer);
+    device.queue.writeBuffer(ctxBuffer, 0, ctxArray);
 
     const bindGroupLayout = device.createBindGroupLayout({
         label: 'bind group layout for ctx buffer',
@@ -88,7 +88,7 @@ async function render_wgpu(fragment, canvas) {
         },
     });
 
-    let t1 = new Date().getTime();
+    let t0 = null;
     let mx = 0, my = 0;
     canvas.addEventListener('mousemove', evt => {
         const rect = evt.target.getBoundingClientRect();
@@ -96,7 +96,7 @@ async function render_wgpu(fragment, canvas) {
         my = evt.clientY - rect.top;
     });
     
-    function render_pass() {
+    function render_pass(timestamp) {
         const renderPassDescriptor = {
             label: 'render pass',
             colorAttachments: [
@@ -117,9 +117,12 @@ async function render_wgpu(fragment, canvas) {
         pass.draw(6);
         pass.end();
 
-        let t2 = new Date().getTime();
-        let t = (t2 - t1) / 1000;
-        device.queue.writeBuffer(ctxBuffer, 0, new Float32Array([mx,my,t]));
+        if (t0 === null) t0 = timestamp;
+        let t = (timestamp - t0) / 1000;
+        ctxArray[0] = mx;
+        ctxArray[1] = my;
+        ctxArray[2] = t;
+        device.queue.writeBuffer(ctxBuffer, 0, ctxArray);
 
         const commandBuffer = encoder.finish();
         device.queue.submit([commandBuffer]);
@@ -128,4 +131,39 @@ async function render_wgpu(fragment, canvas) {
     }
 
     requestAnimationFrame(render_pass);
+}
+
+function gen_fragment_expr(node) {
+    switch (node.kind) {
+        case NodeKind.X: return 'x';
+        case NodeKind.Y: return 'y';
+        case NodeKind.T: return 't';
+        case NodeKind.MOUSEX: return 'mouse_x';
+        case NodeKind.MOUSEY: return 'mouse_y';
+        case NodeKind.NUMBER: return '' + node.number;
+        case NodeKind.BOOLEAN: return '' + node.boolean;
+
+        case NodeKind.ABS: return `abs(${gen_fragment_expr(node.inner)})`;
+        case NodeKind.ADD: return `(${gen_fragment_expr(node.lhs)} + ${gen_fragment_expr(node.rhs)})`;
+        case NodeKind.MULT: return `(${gen_fragment_expr(node.lhs)} * ${gen_fragment_expr(node.rhs)})`;
+        case NodeKind.MOD: return `(${gen_fragment_expr(node.lhs)} % ${gen_fragment_expr(node.rhs)})`;
+        case NodeKind.GE: return `(${gen_fragment_expr(node.lhs)} >= ${gen_fragment_expr(node.rhs)})`;
+        case NodeKind.TRIPLE: {
+            let first = gen_fragment_expr(node.first);
+            let second = gen_fragment_expr(node.second);
+            let third = gen_fragment_expr(node.third);
+            return `vec3f(${first}, ${second}, ${third})`;
+        }
+        case NodeKind.IF: {
+            let cond = gen_fragment_expr(node.cond);
+            let then = gen_fragment_expr(node.then);
+            let elze = gen_fragment_expr(node.elze);
+            return `(f32(${cond}) * (${then}) + f32(!(${cond})) * (${elze}))`;
+        }
+        case NodeKind.RANDOM:
+        case NodeKind.RULE:
+            throw new Error(`Not a valid runtime kind: ${node.kind}`);
+        default:
+            throw new Error(`Not implemented: gen_fragment_expr (${node.kind})`);
+    }
 }
