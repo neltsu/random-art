@@ -32,9 +32,11 @@ const GRAMMAR = {
         node_abs(RULE_C),
         node_add(RULE_C, RULE_C),
         node_mult(RULE_C, RULE_C),
+        // node_cond(node_ge(RULE_C, RULE_C), RULE_C, RULE_C),
     ),
 };
 
-const random = random_art(GRAMMAR, 'E', DEPTH);
+const expr = random_art(GRAMMAR, 'E', DEPTH);
 
-render_wgpu(gen_fragment_expr(random), canvas);
+// render_wgpu(expr, canvas);
+render_webgl(expr, canvas);

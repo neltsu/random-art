@@ -1,4 +1,4 @@
-async function render_wgpu(fragment, canvas) {
+async function render_wgpu(expr, canvas) {
     const adapter = await navigator.gpu?.requestAdapter();
     const device = await adapter?.requestDevice();
     if (!device) {
@@ -12,6 +12,7 @@ async function render_wgpu(fragment, canvas) {
         format: presentationFormat,
     });
 
+    const fragment = gen_wgpu_fragment(expr);
     const module = device.createShaderModule({
         label: 'random art shader',
         code: `
@@ -133,7 +134,7 @@ async function render_wgpu(fragment, canvas) {
     requestAnimationFrame(render_pass);
 }
 
-function gen_fragment_expr(node) {
+function gen_wgpu_fragment(node) {
     switch (node.kind) {
         case NodeKind.X: return 'x';
         case NodeKind.Y: return 'y';
@@ -143,27 +144,27 @@ function gen_fragment_expr(node) {
         case NodeKind.NUMBER: return '' + node.number;
         case NodeKind.BOOLEAN: return '' + node.boolean;
 
-        case NodeKind.ABS: return `abs(${gen_fragment_expr(node.inner)})`;
-        case NodeKind.ADD: return `(${gen_fragment_expr(node.lhs)} + ${gen_fragment_expr(node.rhs)})`;
-        case NodeKind.MULT: return `(${gen_fragment_expr(node.lhs)} * ${gen_fragment_expr(node.rhs)})`;
-        case NodeKind.MOD: return `(${gen_fragment_expr(node.lhs)} % ${gen_fragment_expr(node.rhs)})`;
-        case NodeKind.GE: return `(${gen_fragment_expr(node.lhs)} >= ${gen_fragment_expr(node.rhs)})`;
+        case NodeKind.ABS: return `abs(${gen_wgpu_fragment(node.inner)})`;
+        case NodeKind.ADD: return `(${gen_wgpu_fragment(node.lhs)} + ${gen_wgpu_fragment(node.rhs)})`;
+        case NodeKind.MULT: return `(${gen_wgpu_fragment(node.lhs)} * ${gen_wgpu_fragment(node.rhs)})`;
+        case NodeKind.MOD: return `(${gen_wgpu_fragment(node.lhs)} % ${gen_wgpu_fragment(node.rhs)})`;
+        case NodeKind.GE: return `(${gen_wgpu_fragment(node.lhs)} >= ${gen_wgpu_fragment(node.rhs)})`;
         case NodeKind.TRIPLE: {
-            let first = gen_fragment_expr(node.first);
-            let second = gen_fragment_expr(node.second);
-            let third = gen_fragment_expr(node.third);
+            let first = gen_wgpu_fragment(node.first);
+            let second = gen_wgpu_fragment(node.second);
+            let third = gen_wgpu_fragment(node.third);
             return `vec3f(${first}, ${second}, ${third})`;
         }
         case NodeKind.IF: {
-            let cond = gen_fragment_expr(node.cond);
-            let then = gen_fragment_expr(node.then);
-            let elze = gen_fragment_expr(node.elze);
+            let cond = gen_wgpu_fragment(node.cond);
+            let then = gen_wgpu_fragment(node.then);
+            let elze = gen_wgpu_fragment(node.elze);
             return `(f32(${cond}) * (${then}) + f32(!(${cond})) * (${elze}))`;
         }
         case NodeKind.RANDOM:
         case NodeKind.RULE:
             throw new Error(`Not a valid runtime kind: ${node.kind}`);
         default:
-            throw new Error(`Not implemented: gen_fragment_expr (${node.kind})`);
+            throw new Error(`Not implemented: gen_wgpu_fragment (${node.kind})`);
     }
 }
